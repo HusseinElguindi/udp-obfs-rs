@@ -1,0 +1,30 @@
+[package]
+name = "udp-obfs-rs"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[lib]
+name = "udp_obfs"
+path = "src/lib.rs"
+
+[[bin]]
+name = "udp-obfs-rs"
+path = "src/bin/main.rs"
+
+
+[dev-dependencies]
+criterion = "0.3.6"
+rand = "0.8.5"
+
+[[bench]]
+name = "my_benchmark"
+harness = false
+
+[dependencies]
+base64 = "0.13.0"
+# aes-gcm = { version = "0.9.4", features = ["heapless"] }
+aes-gcm = "0.9.4"
+byteorder = "1.4.3"
