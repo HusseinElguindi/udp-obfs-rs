@@ -43,7 +43,9 @@ fn client() -> Result<()> {
     loop {
         // println!();
 
-        let (_, src_addr) = socket.recv_from(&mut buf[..]).expect("could not read from address");
+        buf.resize(BUFSIZE, 0).unwrap();
+        let (n, src_addr) = socket.recv_from(&mut buf[..]).expect("could not read from address");
+        buf.truncate(n);
         // println!("recieved {} bytes from {}", n, &src_addr);
 
         let dst_addr: SocketAddr;
@@ -93,7 +95,9 @@ fn server() -> Result<()> {
     loop {
         // println!();
 
+        buf.resize(BUFSIZE, 0).unwrap();
         let (n, src_addr) = socket.recv_from(&mut buf[..]).expect("could not read from address");
+        buf.truncate(n);
         // println!("recieved {} bytes from {}", n, &src_addr);
 
         if src_addr == wgsrv_addr {
@@ -102,7 +106,6 @@ fn server() -> Result<()> {
                 //encrypt
                 let msg = aes.encrypt(counter, &mut buf);
                 socket.send_to(msg, dst).expect("could not write to client");
-                buf.clear();
                 counter = if counter == u64::MAX { 0 } else { counter + 1 };
             }
             continue;
@@ -127,7 +130,6 @@ fn server() -> Result<()> {
                 Err(_) => continue
             };
             socket.send_to(&msg[..], wgsrv_addr).expect("could not write to wg server");
-            buf.clear();
             // println!("forwarded to wg server")
         }
     }
