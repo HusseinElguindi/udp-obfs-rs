@@ -1,10 +1,9 @@
 use std::env;
 use std::io::Result;
 use std::net::{IpAddr, UdpSocket, SocketAddr, Ipv4Addr};
+use aes_gcm::aead::heapless;
 
-use udp_obfs::aes::{AES, NONCELEN};
-
-const BUFSIZE: usize = 1500;
+use udp_obfs::aes::{AES, NONCELEN, BUFSIZE};
 
 fn main() -> Result<()> {
     if let Some(arg) = env::args().nth(1) {
@@ -39,27 +38,25 @@ fn client() -> Result<()> {
 
     let aes = AES::new(b"this is my key..");
 
-    let mut buf = [0u8; BUFSIZE];
-    let mut send_buf = [0u8; NONCELEN+BUFSIZE+16];
-    // let mut buf: Vec<u8> = Vec::with_capacity(12+BUFSIZE+16);
+    let mut buf: heapless::Vec<u8, BUFSIZE> = heapless::Vec::new();
     let mut counter = 0u64;
     loop {
         // println!();
 
-        let (n, src_addr) = socket.recv_from(&mut buf[..]).expect("could not read from address");
+        let (_, src_addr) = socket.recv_from(&mut buf[..]).expect("could not read from address");
         // println!("recieved {} bytes from {}", n, &src_addr);
 
         let dst_addr: SocketAddr;
         if src_addr == localwg_addr {
             // println!("forwarding to remote proxy");
-            let msg = aes.encrypt(counter, &buf[..n], &mut send_buf[..]);
+            let msg = aes.encrypt(counter, &mut buf);
             dst_addr = remote_proxy_addr;
             socket.send_to(msg, dst_addr).expect("could not write to client");
             counter = if counter == u64::MAX { 0 } else { counter + 1 };
         } 
         else if src_addr == remote_proxy_addr {
             // println!("forwarding to local proxy");
-            let msg = match aes.decrypt(&buf[..n]) {
+            let msg = match aes.decrypt(&mut buf) {
                 Ok(x) => x,
                 Err(_) => continue
             };
@@ -69,6 +66,8 @@ fn client() -> Result<()> {
         else {
             continue;
         }
+
+        buf.clear();
 
         // socket.send_to(&msg, dst_addr).expect("could not write to client");
     }
@@ -88,9 +87,7 @@ fn server() -> Result<()> {
 
     let aes = AES::new(b"this is my key..");
 
-    let mut buf = [0u8; BUFSIZE];
-
-    let mut send_buf = [0u8; NONCELEN+BUFSIZE+16];
+    let mut buf: heapless::Vec<u8, BUFSIZE> = heapless::Vec::new();
     let mut counter = 0u64;
 
     loop {
@@ -103,8 +100,9 @@ fn server() -> Result<()> {
             // println!("wg server sent this! forwarded to remote client");
             if let Some(dst) = client_addr {
                 //encrypt
-                let send = aes.encrypt(counter, &buf[..n], &mut send_buf[..]);
-                socket.send_to(send, dst).expect("could not write to client");
+                let msg = aes.encrypt(counter, &mut buf);
+                socket.send_to(msg, dst).expect("could not write to client");
+                buf.clear();
                 counter = if counter == u64::MAX { 0 } else { counter + 1 };
             }
             continue;
@@ -124,11 +122,12 @@ fn server() -> Result<()> {
             if n < NONCELEN {
                 continue;
             }
-            let msg = match aes.decrypt(&buf[..n]) {
+            let msg = match aes.decrypt(&mut buf) {
                 Ok(x) => x,
                 Err(_) => continue
             };
             socket.send_to(&msg[..], wgsrv_addr).expect("could not write to wg server");
+            buf.clear();
             // println!("forwarded to wg server")
         }
     }

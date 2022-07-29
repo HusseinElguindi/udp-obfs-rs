@@ -25,6 +25,5 @@ harness = false
 
 [dependencies]
 base64 = "0.13.0"
-# aes-gcm = { version = "0.9.4", features = ["heapless"] }
-aes-gcm = "0.9.4"
+aes-gcm = { version = "0.9.4", features = ["heapless"] }
 byteorder = "1.4.3"
