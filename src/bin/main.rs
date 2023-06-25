@@ -21,10 +21,12 @@ fn main() -> Result<()> {
 }
 
 fn client() -> Result<()> {
+    // TODO: read port from addr
     let src = "0.0.0.0:51821";
     let socket = UdpSocket::bind(&src).expect("could not bind to address");
     println!("listening on {}", &src);
 
+    // TODO: read addr from config
     let localwg_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 51820);
     let remote_proxy_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(185, 240, 247, 233)), 51821);
 
@@ -36,6 +38,7 @@ fn client() -> Result<()> {
 
     socket.send_to(secret.as_bytes(), remote_proxy_addr).expect("could not send init proxy handshake to server");
 
+    // TODO: read key from config
     let aes = AES::new(b"this is my key..");
 
     let mut buf: heapless::Vec<u8, BUFSIZE> = heapless::Vec::new();
