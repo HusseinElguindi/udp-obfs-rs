@@ -24,6 +24,7 @@ name = "my_benchmark"
 harness = false
 
 [dependencies]
-base64 = "0.13.0"
-aes-gcm = { version = "0.9.4", features = ["heapless"] }
+base64 = "0.21.2"
+aes-gcm = { version  ="0.10.2", features = ["heapless"] }
 byteorder = "1.4.3"
+tokio = "1.31.0"
