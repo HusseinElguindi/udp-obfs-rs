@@ -25,6 +25,7 @@ harness = false
 
 [dependencies]
 base64 = "0.21.2"
-aes-gcm = { version  ="0.10.2", features = ["heapless"] }
+aes-gcm = { version = "0.10.2", features = ["heapless"] }
 byteorder = "1.4.3"
-tokio = "1.31.0"
+tokio = { version = "1.31.0", features = ["full"] }
+clap = { version = "4.3.23", features = ["derive"] }

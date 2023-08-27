@@ -32,35 +32,26 @@ fn secret_enforce_len(s: &str) -> clap::error::Result<String, String> {
 #[derive(Args, Debug)]
 #[clap(disable_help_flag = true)]
 struct ModeArgs {
-    #[arg(short, help = "listen host", default_value = "127.0.0.1")]
+    // Commonly the local WireGaurd "Peer Endpoint" host
+    #[arg(short, help = "listen host", default_value = "0.0.0.0")]
     host: IpAddr,
 
+    // Commonly the local WireGaurd "Peer Endpoint" port
     #[arg(short, help = "listen port")]
     port: u16,
 
-    #[arg(
-        long = "src-host",
-        help = "source host (sent decrypted data)",
-        default_value = "127.0.0.1"
-    )]
-    source_host: IpAddr,
+    // Commonly the local WireGuard socket address
+    #[arg(long = "src", help = "source socket (sends/receives decrypted data)")]
+    source_socket: SocketAddr,
 
-    #[arg(long = "src-port", help = "source port (sent decrypted data)")]
-    source_port: u16,
-
-    #[arg(
-        long = "fwd-host",
-        help = "forward host (sent encrypted data)",
-        default_value = "127.0.0.1"
-    )]
-    forward_host: IpAddr,
-
-    #[arg(long = "fwd-port", help = "forward port (sent encrypted data)")]
-    forward_port: u16,
+    // Commonly the remote proxy socket address
+    #[arg(long = "fwd", help = "forward socket (sends/receives encrypted data)")]
+    forward_socket: SocketAddr,
 
     #[arg(short, help = format!("secret encrypt/decrypt key ({} bytes)", KEYLEN), value_parser = secret_enforce_len)]
     secret: String,
 
+    // Disable `-h` for help
     #[arg(long, action = clap::ArgAction::Help)]
     help: Option<bool>,
 }
@@ -80,11 +71,11 @@ async fn client(args: &ModeArgs) -> Result<()> {
         .expect("could not bind to address");
     println!("listening on {}", socket.local_addr()?);
 
-    let proxy_source_addr = SocketAddr::new(args.source_host, args.source_port);
-    let proxy_forward_addr = SocketAddr::new(args.forward_host, args.forward_port);
+    let proxy_source_addr = args.source_socket;
+    let proxy_forward_addr = args.forward_socket;
 
-    println!("proxy source addr: {}", proxy_source_addr);
-    println!("proxy forward addr: {}", proxy_forward_addr);
+    println!("proxy source address: {}", proxy_source_addr);
+    println!("proxy forward address: {}", proxy_forward_addr);
 
     let aes = AES::new(args.secret.as_bytes());
 
@@ -130,11 +121,11 @@ async fn server(args: &ModeArgs) -> Result<()> {
         .expect("could not bind to address");
     println!("listening on {}", socket.local_addr()?);
 
-    let proxy_source_addr = SocketAddr::new(args.source_host, args.source_port);
-    let proxy_forward_addr = SocketAddr::new(args.forward_host, args.forward_port);
+    let proxy_source_addr = args.source_socket;
+    let proxy_forward_addr = args.forward_socket;
 
-    println!("proxy source addr: {}", proxy_source_addr);
-    println!("proxy forward addr: {}", proxy_forward_addr);
+    println!("proxy source address: {}", proxy_source_addr);
+    println!("proxy forward address: {}", proxy_forward_addr);
 
     let aes = AES::new(args.secret.as_bytes());
 
