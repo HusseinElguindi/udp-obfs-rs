@@ -4,6 +4,7 @@ use byteorder::{BigEndian, ByteOrder};
 
 pub const BUFSIZE: usize = 1500;
 pub const NONCELEN: usize = 12;
+pub const KEYLEN: usize = 16;
 
 pub struct AES {
     cipher: Aes128Gcm,
