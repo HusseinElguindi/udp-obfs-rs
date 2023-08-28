@@ -1,19 +1,21 @@
-use aes_gcm::{Aes128Gcm, Key, Nonce};
-use aes_gcm::aead::{AeadInPlace, NewAead};
-use aes_gcm::aead::heapless;
+use aes_gcm::aead::{heapless, AeadInPlace};
+use aes_gcm::{Aes128Gcm, Key, KeyInit, Nonce};
 use byteorder::{BigEndian, ByteOrder};
 
 pub const BUFSIZE: usize = 1500;
 pub const NONCELEN: usize = 12;
+pub const KEYLEN: usize = 16;
 
 pub struct AES {
-    cipher: Aes128Gcm
+    cipher: Aes128Gcm,
 }
 
 impl AES {
     pub fn new(key: &[u8]) -> Self {
-        let key = Key::clone_from_slice(key);
-        return AES{ cipher: Aes128Gcm::new(&key) };
+        let key = Key::<Aes128Gcm>::clone_from_slice(key);
+        return AES {
+            cipher: Aes128Gcm::new(&key),
+        };
     }
 
     pub fn encrypt<'a>(&self, counter: u64, buf: &'a mut heapless::Vec<u8, BUFSIZE>) -> &'a [u8] {
@@ -21,22 +23,28 @@ impl AES {
         BigEndian::write_u64(&mut nonce_bytes, counter);
 
         let nonce = Nonce::from_slice(&nonce_bytes[..]); // 96 bits, 12 bytes; unique per message
-        // TODO: return error
-        self.cipher.encrypt_in_place(nonce, b"", buf).expect("encryption failure!");
+                                                         // TODO: return error
+        self.cipher
+            .encrypt_in_place(nonce, b"", buf)
+            .expect("encryption failure!");
 
-        buf.extend_from_slice(&nonce_bytes[..NONCELEN]).expect("could not extend buf for nonce tag");
+        buf.extend_from_slice(&nonce_bytes[..NONCELEN])
+            .expect("could not extend buf for nonce tag");
         &buf[..]
     }
 
-    pub fn decrypt<'a>(&self, buf: &'a mut heapless::Vec<u8, BUFSIZE>) -> std::result::Result<&'a [u8], aes_gcm::Error> {
+    pub fn decrypt<'a>(
+        &self,
+        buf: &'a mut heapless::Vec<u8, BUFSIZE>,
+    ) -> std::result::Result<&'a [u8], aes_gcm::Error> {
         let n = buf.len();
         let mut nonce_bytes = [0u8; NONCELEN];
-        nonce_bytes.clone_from_slice(&mut buf[(n-NONCELEN)..n]);
+        nonce_bytes.clone_from_slice(&mut buf[(n - NONCELEN)..n]);
         buf.truncate(n - NONCELEN);
 
         let nonce = Nonce::from_slice(&nonce_bytes); // 96 bits, 12 bytes; unique per message
         self.cipher.decrypt_in_place(nonce, b"", buf)?;
-        
+
         Ok(&buf[..])
     }
 }
@@ -44,7 +52,7 @@ impl AES {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::{thread_rng, RngCore, Rng};
+    use rand::{thread_rng, Rng, RngCore};
 
     #[test]
     fn encrypt() {
