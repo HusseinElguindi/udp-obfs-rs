@@ -1,6 +1,26 @@
 # udp-obfs-rs
 An encrypted UDP tunnel to hide datagram data over the Internet. This project is a demonstration of avoiding Deep Packet Inspection (DPI) by obfuscation.
 
+`udp-obfs-rs` works a layer above a standard WireGuard VPN, encrypting/obfuscating packets before they are sent over the wire, and decrypting received packets before WireGuard handles them. As a result, WireGuard traffic (and, consequently, your routed traffic) cannot be easily inspected by anything in between.
+
+```
++--Client--------------+           +--Server--------------+ 
+|  +----------------+  |           |  +----------------+  |
+|  |  udp-obfs-rs   |--+-----------+->|  udp-obfs-rs   |  |
+|  |  client        |  | encrypted |  |  server        |  |
+|  |                |<-+-----------+--|                |  |
+|  +---------+------+  |           |  +---------+------+  |
+|         ^  |         |           |         ^  |         |
+|         |  |         |           |         |  |         |
+|         |  v         |           |         |  v         |
+|  +------+---------+  |           |  +------+---------+  |
+|->|                |  |           |  |                |->|
+|  |  WireGuard     |  |           |  |  WireGuard     |  |
+|<-|                |  |           |  |                |<-|
+|  +----------------+  |           |  +----------------+  |
++----------------------+           +----------------------+
+```
+
 ## Usage
 ```bash
 Usage: udp-obfs-rs (client|server) [OPTIONS] -p <PORT> --src <SOURCE_SOCKET> --fwd <FORWARD_SOCKET> -s <SECRET>
